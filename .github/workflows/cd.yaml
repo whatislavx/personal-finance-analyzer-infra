@@ -1,0 +1,78 @@
+name: CD Pipeline
+
+on:
+  repository_dispatch:
+    types: [app_release]
+
+env:
+  TAG: ${{ github.event.client_payload.tag }}
+  SERVICE: ${{ github.event.client_payload.service }}
+
+  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  GITOPS_REPO_URL: ${{ secrets.GITOPS_REPO_URL }}
+
+  S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  APP_DOMAIN: ${{ secrets.APP_DOMAIN }}
+  ACM_CERTIFICATE_ARN: ${{ secrets.ACM_CERTIFICATE_ARN }}
+  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  APPS_ROLE_ARN: ${{ secrets.AWS_APPS_ROLE_ARN }}
+  INFRA_ROLE_ARN: ${{ secrets.AWS_INFRA_ROLE_ARN }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout infrastructure repository
+        uses: actions/checkout@v4
+
+      - name: Prepare runtime variables
+        run: |
+          echo "S3_ENDPOINT=https://s3.${AWS_REGION}.amazonaws.com" >> $GITHUB_ENV
+
+      - name: Update Helm global values and metadata
+        run: |
+          cd k8s
+
+          sed -i "s|registry:.*|registry: \"$DOCKERHUB_USERNAME\"|g" values.yaml
+          sed -i "s|acmCertificateArn:.*|acmCertificateArn: \"$ACM_CERTIFICATE_ARN\"|g" values.yaml
+          sed -i "s|appDomain:.*|appDomain: \"$APP_DOMAIN\"|g" values.yaml
+
+          sed -i "s|repoUrl:.*|repoUrl: \"$GITOPS_REPO_URL\"|g" values.yaml
+          sed -i "s|s3Endpoint:.*|s3Endpoint: \"$S3_ENDPOINT\"|g" values.yaml
+          sed -i "s|s3Bucket:.*|s3Bucket: \"$S3_BUCKET_NAME\"|g" values.yaml
+          sed -i "s|s3Region:.*|s3Region: \"$AWS_REGION\"|g" values.yaml
+          sed -i "s|appsRoleArn:.*|appsRoleArn: \"$APPS_ROLE_ARN\"|g" values.yaml
+          sed -i "s|infraRoleArn:.*|infraRoleArn: \"$INFRA_ROLE_ARN\"|g" values.yaml
+
+      - name: Update service image tags
+        run: |
+          cd k8s
+          if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "api" ]; then
+            sed -i "/^api:/,/^[a-z]/ s|imageTag:.*|imageTag: \"$TAG\"|" values.yaml
+          fi
+          if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "worker" ]; then
+            sed -i "/^worker:/,/^[a-z]/ s|imageTag:.*|imageTag: \"$TAG\"|" values.yaml
+          fi
+          if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "frontend" ]; then
+            sed -i "/^frontend:/,/^[a-z]/ s|imageTag:.*|imageTag: \"$TAG\"|" values.yaml
+          fi
+
+      - name: Update monitoring configuration
+        run: |
+          sed -i "s|SLACK_WEBHOOK_URL_PLACEHOLDER|$SLACK_WEBHOOK_URL|g" \
+            k8s/config/prometheus-stack.yaml
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "gitops-bot"
+          git config --global user.email "gitops-bot@users.noreply.github.com"
+
+          git add k8s/
+          git commit -m \
+            "chore(gitops): deploy ${SERVICE} with tag ${TAG} [skip ci]" \
+            || echo "No changes to commit"
+
+          git push origin main
