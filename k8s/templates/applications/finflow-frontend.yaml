@@ -1,0 +1,32 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: finflow-frontend
+  namespace: argocd
+spec:
+  project: finflow-apps
+  source:
+    repoURL: {{ .Values.global.repoUrl | quote }}
+    targetRevision: HEAD
+    path: k8s/charts/app-component
+    helm:
+      valueFiles:
+        - ../../values.yaml
+      valuesObject:
+        imageName: "finflow-frontend"
+        replicaCount: 1
+        containerPort: 80
+        hasService: true
+        hasIngress: true
+        ingressPath: "/"
+        ingressHost: {{ .Values.appDomain | quote }}
+        acmCertificateArn: {{ .Values.acmCertificateArn | quote }}
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: finflow-apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

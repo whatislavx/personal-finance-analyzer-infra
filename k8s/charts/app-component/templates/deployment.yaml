@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.imageName | replace "/" "-" }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Values.imageName | replace "/" "-" }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.imageName | replace "/" "-" }}
+    spec:
+      {{- if .Values.serviceAccount.name }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      containers:
+        - name: app
+          image: "{{ .Values.global.registry }}/{{ .Values.imageName }}:{{ .Values.global.imageTag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: {{ .Values.containerPort }}
+              name: http
+          {{- $probes := .Values.probes | default dict }}
+          {{- if ($probes.enabled | default false) }}
+          livenessProbe:
+            httpGet:
+              path: {{ $probes.liveness.path | quote }}
+              port: http
+            initialDelaySeconds: {{ $probes.liveness.initialDelaySeconds }}
+            periodSeconds: {{ $probes.liveness.periodSeconds }}
+            timeoutSeconds: {{ $probes.liveness.timeoutSeconds }}
+            failureThreshold: {{ $probes.liveness.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ $probes.readiness.path | quote }}
+              port: http
+            initialDelaySeconds: {{ $probes.readiness.initialDelaySeconds }}
+            periodSeconds: {{ $probes.readiness.periodSeconds }}
+            timeoutSeconds: {{ $probes.readiness.timeoutSeconds }}
+            failureThreshold: {{ $probes.readiness.failureThreshold }}
+          {{- end }}
+          envFrom:
+            {{- if .Values.config }}
+            - configMapRef:
+                name: {{ .Values.imageName | replace "/" "-" }}-config
+            {{- end }}
+            {{- if .Values.csiSecrets.enabled }}
+            - secretRef:
+                name: {{ .Values.csiSecrets.secretName }}
+            {{- end }}
+            {{- if .Values.secrets }}
+            - secretRef:
+                name: {{ .Values.imageName | replace "/" "-" }}-secret
+            {{- end }}
+          {{- if .Values.csiSecrets.enabled }}
+          volumeMounts:
+            - name: secrets-store-inline
+              mountPath: "/mnt/secrets-store"
+              readOnly: true
+          {{- end }}
+      {{- if .Values.csiSecrets.enabled }}
+      volumes:
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ .Values.csiSecrets.secretProviderClass }}
+      {{- end }}

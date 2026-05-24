@@ -1,0 +1,48 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: finflow-worker
+  namespace: argocd
+spec:
+  project: finflow-apps
+  source:
+    repoURL: {{ .Values.global.repoUrl | quote }}
+    targetRevision: HEAD
+    path: k8s/charts/app-component
+    helm:
+      valueFiles:
+        - ../../values.yaml
+      valuesObject:
+        imageName: "finflow-worker"
+        replicaCount: 2
+        containerPort: 8000
+        hasService: false
+        hasIngress: false
+
+        serviceAccount:
+          name: "finflow-worker-sa"
+
+        csiSecrets:
+          enabled: true
+          secretProviderClass: "finflow-apps-secrets-provider"
+          secretName: "finflow-worker-secret"
+        
+        config:
+          DB_USER: "postgres"
+          DB_HOST: "finflow-database-postgresql"
+          DB_PORT: "5432"
+          DB_NAME: "finance_analyzer_db"
+          RABBITMQ_EXCHANGE: "jobs"
+          S3_ENDPOINT: {{ .Values.global.s3Endpoint | quote }}
+          S3_BUCKET: {{ .Values.global.s3Bucket | quote }}
+          S3_REGION: {{ .Values.global.s3Region | quote }}
+          GOTENBERG_URL: "http://finflow-gotenberg:3000"
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: finflow-apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

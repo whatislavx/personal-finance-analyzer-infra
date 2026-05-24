@@ -1,0 +1,6 @@
+apiVersion: v2
+name: finance-platform
+description: Main Umbrella Chart for FinFlow Infrastructure and Applications
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

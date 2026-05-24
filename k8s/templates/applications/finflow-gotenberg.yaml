@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: finflow-gotenberg
+  namespace: argocd
+spec:
+  project: infrastructure
+  source:
+    repoURL: 'GITOPS_REPO_PLACEHOLDER'
+    targetRevision: HEAD
+    path: k8s/charts/app-component
+    helm:
+      valuesObject:
+        global:
+          imageTag: "8.x.x"
+          registry: "docker.io"
+        imageName: "gotenberg/gotenberg"
+        replicaCount: 1
+        containerPort: 3000
+        hasService: true
+        hasIngress: false
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: finflow-infra
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
