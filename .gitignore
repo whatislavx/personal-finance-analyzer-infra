@@ -1,0 +1,51 @@
+# ------------------------------
+# Terraform
+# ------------------------------
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+
+# Local overrides / crash files
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ------------------------------
+# Secrets & local environment
+# ------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pub
+secrets.yaml
+credentials
+.aws/
+
+# ------------------------------
+# Kubernetes local files
+# ------------------------------
+kubeconfig
+*kubeconfig*
+.kube/
+
+# ------------------------------
+# Helm / Kustomize local artifacts
+# ------------------------------
+.helm/
+*.tgz
+.kustomize/
+
+# ------------------------------
+# OS / IDE
+# ------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
