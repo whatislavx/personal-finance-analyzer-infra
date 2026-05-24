@@ -6,7 +6,6 @@ locals {
     var.s3_bucket_name_override,
     "${var.project_name}-${var.environment}-results-${data.aws_caller_identity.current.account_id}"
   )
-  s3_iam_user_name = "${var.project_name}-${var.environment}-s3-app"
 }
 
 module "vpc" {
@@ -87,6 +86,7 @@ module "eks" {
   }
 }
 
+# --- AWS S3 Bucket ---
 resource "aws_s3_bucket" "results" {
   bucket = local.s3_bucket_name
 
@@ -124,20 +124,29 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "results" {
   }
 }
 
-data "aws_iam_policy_document" "results_bucket_access" {
+# --- AWS Secrets Manager ---
+resource "aws_secretsmanager_secret" "app_secrets" {
+  name                    = "${var.project_name}-${var.environment}-secrets"
+  recovery_window_in_days = 0 # Для швидкого перевипуску в dev/test ставте 0
+}
+
+# --- IAM Policies for Applications ---
+data "aws_iam_policy_document" "app_combined_access" {
   statement {
-    sid = "AllowListBucket"
+    sid = "AllowSecretsManager"
     actions = [
-      "s3:ListBucket"
+      "secretsmanager:GetSecretValue",
+      "secretsmanager:DescribeSecret"
     ]
     resources = [
-      aws_s3_bucket.results.arn
+      aws_secretsmanager_secret.app_secrets.arn
     ]
   }
 
   statement {
-    sid = "AllowObjectAccess"
+    sid = "AllowS3Access"
     actions = [
+      "s3:ListBucket",
       "s3:GetObject",
       "s3:PutObject",
       "s3:DeleteObject",
@@ -146,21 +155,54 @@ data "aws_iam_policy_document" "results_bucket_access" {
       "s3:ListMultipartUploadParts"
     ]
     resources = [
+      aws_s3_bucket.results.arn,
       "${aws_s3_bucket.results.arn}/*"
     ]
   }
 }
 
-resource "aws_iam_user" "results_bucket" {
-  name = local.s3_iam_user_name
+resource "aws_iam_policy" "app_policy" {
+  name   = "${var.project_name}-${var.environment}-app-policy"
+  policy = data.aws_iam_policy_document.app_combined_access.json
 }
 
-resource "aws_iam_user_policy" "results_bucket_access" {
-  name   = "${local.s3_iam_user_name}-access"
-  user   = aws_iam_user.results_bucket.name
-  policy = data.aws_iam_policy_document.results_bucket_access.json
+module "irsa_finflow_apps" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "~> 5.0"
+
+  role_name = "${var.project_name}-${var.environment}-apps-irsa"
+
+  role_policy_arns = {
+    policy = aws_iam_policy.app_policy.arn
+  }
+
+  oidc_providers = {
+    main = {
+      provider_arn = module.eks.oidc_provider_arn
+      namespace_service_accounts = [
+        "finflow-apps:finflow-api-sa",
+        "finflow-apps:finflow-worker-sa"
+      ]
+    }
+  }
 }
 
-resource "aws_iam_access_key" "results_bucket" {
-  user = aws_iam_user.results_bucket.name
+module "irsa_finflow_infra" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "~> 5.0"
+
+  role_name = "${var.project_name}-${var.environment}-infra-irsa"
+
+  role_policy_arns = {
+    policy = aws_iam_policy.app_policy.arn
+  }
+
+  oidc_providers = {
+    main = {
+      provider_arn = module.eks.oidc_provider_arn
+      namespace_service_accounts = [
+        "finflow-infra:finflow-infra-sa"
+      ]
+    }
+  }
 }

@@ -33,14 +33,17 @@ output "app_s3_endpoint" {
   value       = "https://s3.${var.aws_region}.amazonaws.com"
 }
 
-output "app_s3_access_key_id" {
-  description = "Access key ID for S3 application user"
-  value       = aws_iam_access_key.results_bucket.id
-  sensitive   = true
+output "secrets_manager_secret_arn" {
+  description = "ARN of AWS Secrets Manager secret for application"
+  value       = aws_secretsmanager_secret.app_secrets.arn
 }
 
-output "app_s3_secret_access_key" {
-  description = "Secret access key for S3 application user"
-  value       = aws_iam_access_key.results_bucket.secret
-  sensitive   = true
+output "irsa_apps_role_arn" {
+  description = "ARN of IAM Role for finflow core apps"
+  value       = module.irsa_finflow_apps.iam_role_arn
+}
+
+output "irsa_infra_role_arn" {
+  description = "ARN of IAM Role for finflow infrastructure database/rabbitmq"
+  value       = module.irsa_finflow_infra.iam_role_arn
 }
