@@ -11,6 +11,10 @@ spec:
     chart: rabbitmq
     helm:
       valuesObject:
+        image:
+          registry: "docker.io"
+          repository: "rabbitmq"
+          tag: "3.13.7"
         auth:
           username: "finflow_user"
           existingPasswordSecret: "finflow-rabbitmq-secret"
