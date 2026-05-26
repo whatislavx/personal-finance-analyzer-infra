@@ -19,10 +19,6 @@ spec:
         persistence:
           enabled: true
           storageClass: gp2
-        initContainers: null
-        containerSecurityContext:
-          enabled: true
-          readOnlyRootFilesystem: false
         service:
           type: ClusterIP
   destination:
