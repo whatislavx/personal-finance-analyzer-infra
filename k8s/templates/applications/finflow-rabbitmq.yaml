@@ -6,27 +6,27 @@ metadata:
 spec:
   project: infrastructure
   source:
-    repoURL: 'https://charts.bitnami.com/bitnami'
-    targetRevision: 14.x.x
+    repoURL: https://charts.bitnami.com/bitnami
     chart: rabbitmq
+    targetRevision: 14.x.x
     helm:
       valuesObject:
-        image:
-          registry: "docker.io"
-          repository: "rabbitmq"
-          tag: "3.13.7"
         auth:
-          username: "finflow_user"
-          existingPasswordSecret: "finflow-rabbitmq-secret"
-          existingPasswordSecretKey: "RABBITMQ_PASSWORD"
-        persistence:
-          storageClass: "gp2"
+          username: finflow_user
+          existingPasswordSecret: finflow-rabbitmq-secret
+          existingPasswordSecretKey: rabbitmq-password
         replicaCount: 1
-        initContainers: []
+        persistence:
+          enabled: true
+          storageClass: gp2
+        initContainers: null
         containerSecurityContext:
+          enabled: true
           readOnlyRootFilesystem: false
+        service:
+          type: ClusterIP
   destination:
-    server: 'https://kubernetes.default.svc'
+    server: https://kubernetes.default.svc
     namespace: finflow-infra
   syncPolicy:
     automated:
