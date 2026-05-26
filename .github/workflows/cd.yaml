@@ -3,10 +3,16 @@ name: CD Pipeline
 on:
   repository_dispatch:
     types: [app_release]
+
   push:
     branches:
       - main
+
   workflow_dispatch:
+
+concurrency:
+  group: gitops-deploy
+  cancel-in-progress: false
 
 env:
   TAG: ${{ github.event.client_payload.tag }}
@@ -31,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout infrastructure repository
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITOPS_PAT }}
@@ -42,12 +48,25 @@ jobs:
           if [ -z "$GITOPS_BRANCH" ]; then
             echo "GITOPS_BRANCH=gitops/auto" >> $GITHUB_ENV
           fi
+
           echo "S3_ENDPOINT=https://s3.${AWS_REGION}.amazonaws.com" >> $GITHUB_ENV
 
-      - name: Switch to gitops branch
+      - name: Configure git
         run: |
-          git fetch origin main
-          git checkout -B "$GITOPS_BRANCH" "origin/main"
+          git config --global user.name "gitops-bot"
+          git config --global user.email "gitops-bot@users.noreply.github.com"
+
+          git remote set-url origin \
+            "https://x-access-token:${GITOPS_PAT}@github.com/${{ github.repository }}.git"
+
+      - name: Rebuild gitops branch from latest main
+        run: |
+          git fetch origin
+
+          git checkout main
+          git reset --hard origin/main
+
+          git checkout -B "$GITOPS_BRANCH"
 
       - name: Update Helm global values and metadata
         run: |
@@ -61,32 +80,34 @@ jobs:
           sed -i "s|s3Endpoint:.*|s3Endpoint: \"$S3_ENDPOINT\"|g" values.yaml
           sed -i "s|s3Bucket:.*|s3Bucket: \"$S3_BUCKET_NAME\"|g" values.yaml
           sed -i "s|s3Region:.*|s3Region: \"$AWS_REGION\"|g" values.yaml
+
           sed -i "s|appsRoleArn:.*|appsRoleArn: \"$APPS_ROLE_ARN\"|g" values.yaml
           sed -i "s|infraRoleArn:.*|infraRoleArn: \"$INFRA_ROLE_ARN\"|g" values.yaml
 
       - name: Update service image tags
         run: |
           cd k8s
+
           if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "api" ]; then
             sed -i "/^api:/,/^[a-z]/ s|imageTag:.*|imageTag: \"$TAG\"|" values.yaml
           fi
+
           if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "worker" ]; then
             sed -i "/^worker:/,/^[a-z]/ s|imageTag:.*|imageTag: \"$TAG\"|" values.yaml
           fi
+
           if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "frontend" ]; then
             sed -i "/^frontend:/,/^[a-z]/ s|imageTag:.*|imageTag: \"$TAG\"|" values.yaml
           fi
 
-      - name: Commit and push changes
+      - name: Commit changes
         run: |
-          git config --global user.name "gitops-bot"
-          git config --global user.email "gitops-bot@users.noreply.github.com"
-
-          git remote set-url origin "https://x-access-token:${GITOPS_PAT}@github.com/${{ github.repository }}.git"
-
           git add k8s/
+
           git commit -m \
             "chore(gitops): deploy ${SERVICE} with tag ${TAG} [skip ci]" \
             || echo "No changes to commit"
 
-          git push origin "$GITOPS_BRANCH"
+      - name: Push gitops branch
+        run: |
+          git push --force origin "$GITOPS_BRANCH"
