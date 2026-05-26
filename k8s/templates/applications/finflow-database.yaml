@@ -24,7 +24,7 @@ spec:
           persistence:
             enabled: true
             size: 10Gi
-            storageClass: "gp2"
+            storageClass: "gp3"
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: finflow-infra

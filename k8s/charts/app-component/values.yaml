@@ -1,5 +1,7 @@
 enabled: false
 imageName: ""
+imageTag: ""
+registry: ""
 replicaCount: 1
 containerPort: 80
 hasService: false

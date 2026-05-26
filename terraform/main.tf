@@ -62,18 +62,22 @@ module "eks" {
   cluster_name    = "${var.project_name}-${var.environment}-eks"
   cluster_version = var.cluster_version
 
-  cluster_addons = {
-    aws-ebs-csi-driver = {
-      most_recent = true
-    }
-  }
-
   cluster_endpoint_public_access = true
 
   vpc_id     = module.vpc.vpc_id
   subnet_ids = module.vpc.private_subnets
 
   enable_cluster_creator_admin_permissions = true
+
+  # ==============================================================================
+  # ОНОВЛЕНО: Декларативне підключення EBS CSI драйвера з явною IAM-роллю
+  # ==============================================================================
+  cluster_addons = {
+    aws-ebs-csi-driver = {
+      most_recent              = true
+      service_account_role_arn = module.ebs_csi_irsa_role.iam_role_arn
+    }
+  }
 
   eks_managed_node_groups = {
     main = {
@@ -297,4 +301,28 @@ module "irsa_finflow_infra" {
       ]
     }
   }
+}
+
+# ==============================================================================
+# ДОДАНО: Декларативний опис IAM-ролі для інфраструктурного драйвера дисків EBS
+# ==============================================================================
+module "ebs_csi_irsa_role" {
+  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
+  version = "~> 5.0"
+
+  role_name             = "${var.project_name}-${var.environment}-ebs-csi-irsa"
+  attach_ebs_csi_policy = true
+
+  oidc_providers = {
+    main = {
+      provider_arn               = module.eks.oidc_provider_arn
+      namespace_service_accounts = ["kube-system:ebs-csi-controller-sa"]
+    }
+  }
+}
+
+# Attach EBS CSI Driver IAM policy to the EKS node group role
+resource "aws_iam_role_policy_attachment" "ebs_csi_driver_policy" {
+  role       = module.eks.eks_managed_node_groups["main"].iam_role_name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }

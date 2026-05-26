@@ -17,9 +17,11 @@ spec:
       {{- if .Values.serviceAccount.name }}
       serviceAccountName: {{ .Values.serviceAccount.name }}
       {{- end }}
+      {{- $registry := .Values.registry | default .Values.global.registry }}
+      {{- $tag := .Values.imageTag | default .Values.global.imageTag }}
       containers:
         - name: app
-          image: "{{ .Values.global.registry }}/{{ .Values.imageName }}:{{ .Values.global.imageTag }}"
+          image: "{{ $registry }}/{{ .Values.imageName }}:{{ $tag }}"
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: {{ .Values.containerPort }}
