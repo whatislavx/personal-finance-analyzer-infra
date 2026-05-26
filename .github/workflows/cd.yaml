@@ -44,7 +44,10 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare runtime variables
+        shell: bash
         run: |
+          set -e
+
           if [ -z "$GITOPS_BRANCH" ]; then
             echo "GITOPS_BRANCH=gitops/auto" >> $GITHUB_ENV
           fi
@@ -52,7 +55,10 @@ jobs:
           echo "S3_ENDPOINT=https://s3.${AWS_REGION}.amazonaws.com" >> $GITHUB_ENV
 
       - name: Configure git
+        shell: bash
         run: |
+          set -e
+
           git config --global user.name "gitops-bot"
           git config --global user.email "gitops-bot@users.noreply.github.com"
 
@@ -60,7 +66,10 @@ jobs:
             "https://x-access-token:${GITOPS_PAT}@github.com/${{ github.repository }}.git"
 
       - name: Rebuild gitops branch from latest main
+        shell: bash
         run: |
+          set -e
+
           git fetch origin
 
           git checkout main
@@ -69,7 +78,10 @@ jobs:
           git checkout -B "$GITOPS_BRANCH"
 
       - name: Update Helm global values and metadata
+        shell: bash
         run: |
+          set -e
+
           cd k8s
 
           sed -i "s|registry:.*|registry: \"$DOCKERHUB_USERNAME\"|g" values.yaml
@@ -85,7 +97,10 @@ jobs:
           sed -i "s|infraRoleArn:.*|infraRoleArn: \"$INFRA_ROLE_ARN\"|g" values.yaml
 
       - name: Update service image tags
+        shell: bash
         run: |
+          set -e
+
           cd k8s
 
           if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "api" ]; then
@@ -101,7 +116,10 @@ jobs:
           fi
 
       - name: Commit changes
+        shell: bash
         run: |
+          set -e
+
           git add k8s/
 
           git commit -m \
@@ -109,5 +127,8 @@ jobs:
             || echo "No changes to commit"
 
       - name: Push gitops branch
+        shell: bash
         run: |
+          set -e
+
           git push --force origin "$GITOPS_BRANCH"
