@@ -13,6 +13,7 @@ spec:
       valueFiles:
         - ../../values.yaml
       valuesObject:
+        enabled: true
         imageName: "finflow-frontend"
         replicaCount: 1
         containerPort: 80

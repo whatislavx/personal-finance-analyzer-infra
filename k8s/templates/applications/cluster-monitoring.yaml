@@ -10,8 +10,8 @@ spec:
     targetRevision: 58.x.x
     chart: kube-prometheus-stack
     helm:
-    valueFiles:
-      - ../../config/prometheus-stack.yaml
+      valueFiles:
+        - ../../config/prometheus-stack.yaml
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: finflow-monitoring

@@ -12,6 +12,7 @@ env:
 
   DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
   GITOPS_REPO_URL: ${{ vars.GITOPS_REPO_URL }}
+  GITOPS_BRANCH: ${{ vars.GITOPS_BRANCH }}
 
   S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}
   AWS_REGION: ${{ vars.AWS_REGION }}
@@ -30,10 +31,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITOPS_PAT }}
+          fetch-depth: 0
 
       - name: Prepare runtime variables
         run: |
+          if [ -z "$GITOPS_BRANCH" ]; then
+            echo "GITOPS_BRANCH=gitops/auto" >> $GITHUB_ENV
+          fi
           echo "S3_ENDPOINT=https://s3.${AWS_REGION}.amazonaws.com" >> $GITHUB_ENV
+
+      - name: Switch to gitops branch
+        run: |
+          git fetch origin main
+          git checkout -B "$GITOPS_BRANCH" "origin/main"
 
       - name: Update Helm global values and metadata
         run: |
@@ -75,4 +85,4 @@ jobs:
             "chore(gitops): deploy ${SERVICE} with tag ${TAG} [skip ci]" \
             || echo "No changes to commit"
 
-          git push origin main
+          git push origin "$GITOPS_BRANCH"

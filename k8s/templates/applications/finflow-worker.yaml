@@ -13,6 +13,7 @@ spec:
       valueFiles:
         - ../../values.yaml
       valuesObject:
+        enabled: true
         imageName: "finflow-worker"
         replicaCount: 2
         containerPort: 8000
