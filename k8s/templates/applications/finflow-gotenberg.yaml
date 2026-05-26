@@ -6,10 +6,12 @@ metadata:
 spec:
   project: infrastructure
   source:
-    repoURL: 'GITOPS_REPO_PLACEHOLDER'
-    targetRevision: HEAD
+    repoURL: {{ .Values.global.repoUrl | quote }}
+    targetRevision: {{ .Values.global.repoBranch | default "gitops/auto" | quote }}
     path: k8s/charts/app-component
     helm:
+      valueFiles:
+        - ../../values.yaml
       valuesObject:
         enabled: true
         global:
@@ -20,6 +22,12 @@ spec:
         containerPort: 3000
         hasService: true
         hasIngress: false
+        serviceAccount:
+          name: "finflow-infra-sa"
+        csiSecrets:
+          enabled: true
+          secretProviderClass: "finflow-infra-secrets-provider"
+          secretName: "finflow-database-secret"
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: finflow-infra

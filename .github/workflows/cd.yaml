@@ -83,6 +83,8 @@ jobs:
           sed -i "s|appDomain:.*|appDomain: \"$APP_DOMAIN\"|g" values.yaml
 
           sed -i "s|repoUrl:.*|repoUrl: \"$GITOPS_REPO_URL\"|g" values.yaml
+          sed -i "s|repoBranch:.*|repoBranch: \"$GITOPS_BRANCH\"|g" values.yaml
+
           sed -i "s|s3Endpoint:.*|s3Endpoint: \"$S3_ENDPOINT\"|g" values.yaml
           sed -i "s|s3Bucket:.*|s3Bucket: \"$S3_BUCKET_NAME\"|g" values.yaml
           sed -i "s|s3Region:.*|s3Region: \"$AWS_REGION\"|g" values.yaml

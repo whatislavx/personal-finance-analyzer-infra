@@ -5,6 +5,7 @@ global:
   imageTag: "latest"
   registry: "whatislavx"
   repoUrl: "GITOPS_REPO_PLACEHOLDER"
+  repoBranch: "GITOPS_BRANCH_PLACEHOLDER"
   s3Endpoint: "S3_ENDPOINT_PLACEHOLDER"
   s3Bucket: "S3_BUCKET_PLACEHOLDER"
   s3Region: "S3_REGION_PLACEHOLDER"

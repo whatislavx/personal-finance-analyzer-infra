@@ -7,7 +7,7 @@ spec:
   project: finflow-apps
   source:
     repoURL: {{ .Values.global.repoUrl | quote }}
-    targetRevision: HEAD
+    targetRevision: {{ .Values.global.repoBranch | default "gitops/auto" | quote }}
     path: k8s/charts/app-component
     helm:
       valueFiles:
