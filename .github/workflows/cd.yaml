@@ -4,12 +4,6 @@ on:
   repository_dispatch:
     types: [app_release]
 
-  push:
-    branches:
-      - main
-
-  workflow_dispatch:
-
 concurrency:
   group: gitops-deploy
   cancel-in-progress: false
