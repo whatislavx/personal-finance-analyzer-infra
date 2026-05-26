@@ -1,0 +1,5 @@
+apiVersion: v2
+name: finflow-secrets-config
+description: Secrets sync resources for finflow
+type: application
+version: 0.1.0
