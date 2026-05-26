@@ -24,6 +24,9 @@ spec:
         replicaCount: 1
         containerSecurityContext:
           readOnlyRootFilesystem: false
+        initContainers:
+          securityContext:
+            readOnlyRootFilesystem: false
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: finflow-infra
