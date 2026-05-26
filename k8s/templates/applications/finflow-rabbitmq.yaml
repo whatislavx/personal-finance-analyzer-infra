@@ -22,6 +22,8 @@ spec:
         persistence:
           storageClass: "gp2"
         replicaCount: 1
+        containerSecurityContext:
+          readOnlyRootFilesystem: false
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: finflow-infra

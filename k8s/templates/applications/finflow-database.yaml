@@ -29,6 +29,12 @@ spec:
             enabled: true
             size: 10Gi
             storageClass: "gp2"
+          extraVolumes:
+            - name: postgres-run
+              emptyDir: {}
+          extraVolumeMounts:
+            - name: postgres-run
+              mountPath: /var/run/postgresql
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: finflow-infra
