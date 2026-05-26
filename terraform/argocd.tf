@@ -87,3 +87,38 @@ resource "kubernetes_manifest" "argocd_root_app" {
 
   depends_on = [time_sleep.argocd_crds_ready]
 }
+
+# Secrets Store CSI Driver
+resource "helm_release" "secrets_store_csi_driver" {
+  count      = var.enable_k8s_addons ? 1 : 0
+  name       = "secrets-store-csi-driver"
+  repository = "https://kubernetes-sigs.github.io/secrets-store-csi-driver/charts"
+  chart      = "secrets-store-csi-driver"
+  namespace  = "kube-system"
+  version    = "1.4.8"
+
+  wait    = true
+  timeout = 300
+
+  set {
+    name  = "syncSecret.enabled"
+    value = "true"
+  }
+
+  depends_on = [module.eks]
+}
+
+# AWS Secrets Manager Provider for CSI Driver
+resource "helm_release" "aws_secrets_manager_provider" {
+  count      = var.enable_k8s_addons ? 1 : 0
+  name       = "ssm-provider-aws"
+  repository = "https://aws.github.io/secrets-store-csi-driver-provider-aws"
+  chart      = "secrets-store-csi-driver-provider-aws"
+  namespace  = "kube-system"
+  version    = "0.3.10"
+
+  wait    = true
+  timeout = 300
+
+  depends_on = [helm_release.secrets_store_csi_driver]
+}

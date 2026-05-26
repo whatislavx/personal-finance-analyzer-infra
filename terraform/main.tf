@@ -62,6 +62,12 @@ module "eks" {
   cluster_name    = "${var.project_name}-${var.environment}-eks"
   cluster_version = var.cluster_version
 
+  cluster_addons = {
+    aws-ebs-csi-driver = {
+      most_recent = true
+    }
+  }
+
   cluster_endpoint_public_access = true
 
   vpc_id     = module.vpc.vpc_id
