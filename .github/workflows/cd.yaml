@@ -3,6 +3,10 @@ name: CD Pipeline
 on:
   repository_dispatch:
     types: [app_release]
+  push:
+    branches:
+      - main
+  workflow_dispatch:
 
 env:
   TAG: ${{ github.event.client_payload.tag }}

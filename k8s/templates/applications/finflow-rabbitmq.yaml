@@ -15,6 +15,8 @@ spec:
           username: "finflow_user"
           existingPasswordSecret: "finflow-rabbitmq-secret"
           existingPasswordSecretKey: "RABBITMQ_PASSWORD"
+        persistence:
+          storageClass: "gp2"
         replicaCount: 1
   destination:
     server: 'https://kubernetes.default.svc'
