@@ -8,17 +8,18 @@ env:
   TAG: ${{ github.event.client_payload.tag }}
   SERVICE: ${{ github.event.client_payload.service }}
 
-  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-  GITOPS_REPO_URL: ${{ secrets.GITOPS_REPO_URL }}
+  GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
 
-  S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-  AWS_REGION: ${{ secrets.AWS_REGION }}
-  APP_DOMAIN: ${{ secrets.APP_DOMAIN }}
-  ACM_CERTIFICATE_ARN: ${{ secrets.ACM_CERTIFICATE_ARN }}
-  SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+  DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+  GITOPS_REPO_URL: ${{ vars.GITOPS_REPO_URL }}
 
-  APPS_ROLE_ARN: ${{ secrets.AWS_APPS_ROLE_ARN }}
-  INFRA_ROLE_ARN: ${{ secrets.AWS_INFRA_ROLE_ARN }}
+  S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+  ACM_CERTIFICATE_ARN: ${{ vars.ACM_CERTIFICATE_ARN }}
+
+  APPS_ROLE_ARN: ${{ vars.AWS_APPS_ROLE_ARN }}
+  INFRA_ROLE_ARN: ${{ vars.AWS_INFRA_ROLE_ARN }}
 
 jobs:
   deploy:
@@ -27,6 +28,8 @@ jobs:
     steps:
       - name: Checkout infrastructure repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITOPS_PAT }}
 
       - name: Prepare runtime variables
         run: |
@@ -60,15 +63,12 @@ jobs:
             sed -i "/^frontend:/,/^[a-z]/ s|imageTag:.*|imageTag: \"$TAG\"|" values.yaml
           fi
 
-      - name: Update monitoring configuration
-        run: |
-          sed -i "s|SLACK_WEBHOOK_URL_PLACEHOLDER|$SLACK_WEBHOOK_URL|g" \
-            k8s/config/prometheus-stack.yaml
-
       - name: Commit and push changes
         run: |
           git config --global user.name "gitops-bot"
           git config --global user.email "gitops-bot@users.noreply.github.com"
+
+          git remote set-url origin "https://x-access-token:${GITOPS_PAT}@github.com/${{ github.repository }}.git"
 
           git add k8s/
           git commit -m \

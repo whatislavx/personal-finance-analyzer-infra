@@ -18,6 +18,9 @@ grafana:
     size: 5Gi
 
 alertmanager:
+  alertmanagerSpec:
+    secrets:
+      - finflow-alertmanager-secret
   config:
     global:
       resolve_timeout: 5m
@@ -31,5 +34,5 @@ alertmanager:
       - name: "slack-notifications"
         slack_configs:
           - channel: "#alerts-finflow"
-            api_url: "SLACK_WEBHOOK_URL_PLACEHOLDER"
+            api_url_file: "/etc/alertmanager/secrets/finflow-alertmanager-secret/SLACK_WEBHOOK_URL"
             send_resolved: true

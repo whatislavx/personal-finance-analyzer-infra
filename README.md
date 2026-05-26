@@ -49,7 +49,6 @@ EKS Cluster
 .
 ├── terraform/                 # AWS infrastructure (EKS, VPC, S3, IAM)
 ├── k8s/
-│   ├── argocd/root-app.yaml   # ArgoCD app-of-apps bootstrap
 │   ├── templates/
 │   │   ├── projects/          # ArgoCD AppProjects
 │   │   └── applications/      # ArgoCD Applications (apps, infra, monitoring)
@@ -99,7 +98,7 @@ Terraform provisions:
 - access keys exposed as Terraform outputs (sensitive)
 
 ### 4. GitOps model
-- `root-app.yaml` points ArgoCD to the umbrella `k8s` chart
+- Terraform creates the root ArgoCD Application
 - ArgoCD creates AppProjects and Applications automatically
 - sync is automated (`prune` + `selfHeal`)
 
@@ -131,11 +130,12 @@ Use output value or run:
 aws eks update-kubeconfig --region eu-central-1 --name finflow-prod-eks
 ```
 
-### 3) Install ArgoCD
+### 3) ArgoCD bootstrap
+ArgoCD is installed by Terraform via Helm, and the root Application is created automatically.
+To verify:
 ```bash
-kubectl create namespace argocd
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
-kubectl apply -f k8s/argocd/root-app.yaml
+kubectl get pods -n argocd
+kubectl get application -n argocd
 ```
 
 ### 4) Access ArgoCD UI

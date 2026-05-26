@@ -1,10 +1,23 @@
 data "aws_availability_zones" "available" {}
 data "aws_caller_identity" "current" {}
+data "aws_eks_cluster_auth" "cluster" {
+  name = module.eks.cluster_name
+}
 
 locals {
   s3_bucket_name = coalesce(
     var.s3_bucket_name_override,
     "${var.project_name}-${var.environment}-results-${data.aws_caller_identity.current.account_id}"
+  )
+
+  tfstate_bucket_name = coalesce(
+    var.tfstate_bucket_name_override,
+    "${var.project_name}-${var.environment}-tfstate-${data.aws_caller_identity.current.account_id}"
+  )
+
+  tfstate_lock_table_name = coalesce(
+    var.tfstate_lock_table_name_override,
+    "${var.project_name}-${var.environment}-tfstate-locks"
   )
 }
 
@@ -86,12 +99,65 @@ module "eks" {
   }
 }
 
-# --- AWS S3 Bucket ---
 resource "aws_s3_bucket" "results" {
   bucket = local.s3_bucket_name
 
   tags = {
     Name        = "${var.project_name}-${var.environment}-results"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_s3_bucket" "tfstate" {
+  bucket = local.tfstate_bucket_name
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-tfstate"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "tfstate" {
+  bucket = aws_s3_bucket.tfstate.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_versioning" "tfstate" {
+  bucket = aws_s3_bucket.tfstate.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "tfstate" {
+  bucket = aws_s3_bucket.tfstate.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_dynamodb_table" "tfstate_locks" {
+  name         = local.tfstate_lock_table_name
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
+
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-tfstate-locks"
     Environment = var.environment
     Project     = var.project_name
   }
@@ -124,13 +190,33 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "results" {
   }
 }
 
-# --- AWS Secrets Manager ---
 resource "aws_secretsmanager_secret" "app_secrets" {
   name                    = "${var.project_name}-${var.environment}-secrets"
-  recovery_window_in_days = 0 # Для швидкого перевипуску в dev/test ставте 0
+  recovery_window_in_days = 0
 }
 
-# --- IAM Policies for Applications ---
+resource "aws_secretsmanager_secret_version" "app_secrets" {
+  secret_id = aws_secretsmanager_secret.app_secrets.id
+  secret_string = jsonencode({
+    DB_PASSWORD       = var.db_password
+    JWT_SECRET_KEY    = var.jwt_secret_key
+    RABBITMQ_PASSWORD = var.rabbitmq_password
+    SLACK_WEBHOOK_URL = var.slack_webhook_url
+  })
+}
+
+resource "aws_acm_certificate" "app" {
+  domain_name               = var.acm_domain_name
+  subject_alternative_names = var.acm_subject_alternative_names
+  validation_method         = "DNS"
+
+  tags = {
+    Name        = "${var.project_name}-${var.environment}-acm"
+    Environment = var.environment
+    Project     = var.project_name
+  }
+}
+
 data "aws_iam_policy_document" "app_combined_access" {
   statement {
     sid = "AllowSecretsManager"
