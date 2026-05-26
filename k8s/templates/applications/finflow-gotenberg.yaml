@@ -15,7 +15,7 @@ spec:
       valuesObject:
         enabled: true
         global:
-          imageTag: "8.x.x"
+          imageTag: "latest"
           registry: "docker.io"
         imageName: "gotenberg/gotenberg"
         replicaCount: 1
