@@ -1,25 +1,25 @@
-acmCertificateArn: "ACM_CERTIFICATE_ARN_PLACEHOLDER"
-appDomain: "APP_DOMAIN_PLACEHOLDER"
+acmCertificateArn: "arn:aws:acm:eu-central-1:668751951204:certificate/3a72e4d5-aba1-49ff-aa98-12e7d5b02329"
+appDomain: "finflow.pp.ua"
 
 global:
   imageTag: "latest"
   registry: "whatislavx"
-  repoUrl: "GITOPS_REPO_PLACEHOLDER"
-  repoBranch: "GITOPS_BRANCH_PLACEHOLDER"
-  s3Endpoint: "S3_ENDPOINT_PLACEHOLDER"
-  s3Bucket: "S3_BUCKET_PLACEHOLDER"
-  s3Region: "S3_REGION_PLACEHOLDER"
-  appsRoleArn: "APPS_ROLE_ARN_PLACEHOLDER"
-  infraRoleArn: "INFRA_ROLE_ARN_PLACEHOLDER"
+  repoUrl: "https://github.com/whatislavx/personal-finance-analyzer-infra.git"
+  repoBranch: "gitops/auto"
+  s3Endpoint: "https://s3.eu-central-1.amazonaws.com"
+  s3Bucket: "finflow-prod-results-668751951204"
+  s3Region: "eu-central-1"
+  appsRoleArn: "arn:aws:iam::668751951204:role/finflow-prod-apps-irsa"
+  infraRoleArn: "arn:aws:iam::668751951204:role/finflow-prod-infra-irsa"
 
 api:
-  imageTag: "latest"
+  imageTag: "v1.0.0"
   registry: "whatislavx"
 
 worker:
-  imageTag: "latest"
+  imageTag: "v1.0.0"
   registry: "whatislavx"
 
 frontend:
-  imageTag: "latest"
+  imageTag: "v1.0.0"
   registry: "whatislavx"
