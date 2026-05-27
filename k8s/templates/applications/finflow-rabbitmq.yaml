@@ -1,34 +1,53 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
+
 metadata:
   name: finflow-rabbitmq
   namespace: argocd
+
 spec:
   project: infrastructure
+
   source:
-    repoURL: https://charts.bitnami.com/bitnami
+    repoURL: https://groundhog2k.github.io/helm-charts/
     chart: rabbitmq
-    targetRevision: 16.0.14
+    targetRevision: 2.3.1
+
     helm:
       valuesObject:
-        auth:
-          username: finflow_user
-          existingPasswordSecret: finflow-rabbitmq-secret
-          existingPasswordSecretKey: rabbitmq-password
+        image:
+          registry: "docker.io"
+          repository: "rabbitmq"
+          tag: "3.13-management"
+
+        authentication:
+          existingSecret: finflow-rabbitmq-secret
+          user:
+            secretKey: rabbitmq-username
+          password:
+            secretKey: rabbitmq-password
+          erlangCookie:
+            secretKey: rabbitmq-erlang-cookie
+
         replicaCount: 1
-        persistence:
-          enabled: true
-          storageClass: gp2
+
+        storage:
+          requestedSize: 8Gi
+          className: gp2
           accessModes:
             - ReadWriteOnce
+
         service:
           type: ClusterIP
+
   destination:
     server: https://kubernetes.default.svc
     namespace: finflow-infra
+
   syncPolicy:
     automated:
       prune: true
       selfHeal: true
+
     syncOptions:
       - CreateNamespace=true

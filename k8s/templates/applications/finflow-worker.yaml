@@ -21,25 +21,25 @@ spec:
         containerPort: 8000
         hasService: false
         hasIngress: false
-
         serviceAccount:
           name: "finflow-worker-sa"
-
         csiSecrets:
           enabled: true
           secretProviderClass: "finflow-apps-secrets-provider"
           secretName: "finflow-worker-secret"
-
         config:
           DB_USER: "postgres"
-          DB_HOST: "finflow-database-postgresql"
+          DB_HOST: "finflow-database-postgresql.finflow-infra.svc.cluster.local"
           DB_PORT: "5432"
           DB_NAME: "finance_analyzer_db"
+          RABBITMQ_HOST: "finflow-rabbitmq.finflow-infra.svc.cluster.local"
+          RABBITMQ_PORT: "5672"
+          RABBITMQ_USER: "finflow_user"
           RABBITMQ_EXCHANGE: "jobs"
           S3_ENDPOINT: {{ .Values.global.s3Endpoint | quote }}
           S3_BUCKET: {{ .Values.global.s3Bucket | quote }}
           S3_REGION: {{ .Values.global.s3Region | quote }}
-          GOTENBERG_URL: "http://finflow-gotenberg:3000"
+          GOTENBERG_URL: "http://gotenberg-gotenberg.finflow-infra.svc.cluster.local:3000"
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: finflow-apps
