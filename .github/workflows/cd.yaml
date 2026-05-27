@@ -1,0 +1,130 @@
+name: CD Pipeline
+
+on:
+  repository_dispatch:
+    types: [app_release]
+
+concurrency:
+  group: gitops-deploy
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.event.client_payload.tag }}
+  SERVICE: ${{ github.event.client_payload.service }}
+
+  GITOPS_PAT: ${{ secrets.GITOPS_PAT }}
+
+  DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
+  GITOPS_REPO_URL: ${{ vars.GITOPS_REPO_URL }}
+  GITOPS_BRANCH: ${{ vars.GITOPS_BRANCH }}
+
+  S3_BUCKET_NAME: ${{ vars.S3_BUCKET_NAME }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  APP_DOMAIN: ${{ vars.APP_DOMAIN }}
+  ACM_CERTIFICATE_ARN: ${{ vars.ACM_CERTIFICATE_ARN }}
+
+  APPS_ROLE_ARN: ${{ vars.AWS_APPS_ROLE_ARN }}
+  INFRA_ROLE_ARN: ${{ vars.AWS_INFRA_ROLE_ARN }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITOPS_PAT }}
+          fetch-depth: 0
+
+      - name: Prepare runtime variables
+        shell: bash
+        run: |
+          set -e
+
+          if [ -z "$GITOPS_BRANCH" ]; then
+            echo "GITOPS_BRANCH=gitops/auto" >> $GITHUB_ENV
+          fi
+
+          echo "S3_ENDPOINT=https://s3.${AWS_REGION}.amazonaws.com" >> $GITHUB_ENV
+
+      - name: Configure git
+        shell: bash
+        run: |
+          set -e
+
+          git config --global user.name "gitops-bot"
+          git config --global user.email "gitops-bot@users.noreply.github.com"
+
+          git remote set-url origin \
+            "https://x-access-token:${GITOPS_PAT}@github.com/${{ github.repository }}.git"
+
+      - name: Rebuild gitops branch from latest main
+        shell: bash
+        run: |
+          set -e
+
+          git fetch origin
+
+          git checkout main
+          git reset --hard origin/main
+
+          git checkout -B "$GITOPS_BRANCH"
+
+      - name: Update Helm global values and metadata
+        shell: bash
+        run: |
+          set -e
+
+          cd k8s
+
+          sed -i "s|registry:.*|registry: \"$DOCKERHUB_USERNAME\"|g" values.yaml
+          sed -i "s|acmCertificateArn:.*|acmCertificateArn: \"$ACM_CERTIFICATE_ARN\"|g" values.yaml
+          sed -i "s|appDomain:.*|appDomain: \"$APP_DOMAIN\"|g" values.yaml
+
+          sed -i "s|repoUrl:.*|repoUrl: \"$GITOPS_REPO_URL\"|g" values.yaml
+          sed -i "s|repoBranch:.*|repoBranch: \"$GITOPS_BRANCH\"|g" values.yaml
+
+          sed -i "s|s3Endpoint:.*|s3Endpoint: \"$S3_ENDPOINT\"|g" values.yaml
+          sed -i "s|s3Bucket:.*|s3Bucket: \"$S3_BUCKET_NAME\"|g" values.yaml
+          sed -i "s|s3Region:.*|s3Region: \"$AWS_REGION\"|g" values.yaml
+
+          sed -i "s|appsRoleArn:.*|appsRoleArn: \"$APPS_ROLE_ARN\"|g" values.yaml
+          sed -i "s|infraRoleArn:.*|infraRoleArn: \"$INFRA_ROLE_ARN\"|g" values.yaml
+
+      - name: Update service image tags
+        shell: bash
+        run: |
+          set -e
+
+          cd k8s
+
+          if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "api" ]; then
+            sed -i "/^api:/,/^[a-z]/ s|imageTag:.*|imageTag: \"$TAG\"|" values.yaml
+          fi
+
+          if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "worker" ]; then
+            sed -i "/^worker:/,/^[a-z]/ s|imageTag:.*|imageTag: \"$TAG\"|" values.yaml
+          fi
+
+          if [ "$SERVICE" = "all" ] || [ "$SERVICE" = "frontend" ]; then
+            sed -i "/^frontend:/,/^[a-z]/ s|imageTag:.*|imageTag: \"$TAG\"|" values.yaml
+          fi
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          set -e
+
+          git add k8s/
+
+          git commit -m \
+            "chore(gitops): deploy ${SERVICE} with tag ${TAG} [skip ci]" \
+            || echo "No changes to commit"
+
+      - name: Push gitops branch
+        shell: bash
+        run: |
+          set -e
+
+          git push --force origin "$GITOPS_BRANCH"
