@@ -1,4 +1,7 @@
+enabled: false
 imageName: ""
+imageTag: ""
+registry: ""
 replicaCount: 1
 containerPort: 80
 hasService: false
@@ -6,6 +9,7 @@ hasIngress: false
 ingressPath: "/"
 ingressHost: ""
 acmCertificateArn: ""
+appDomain: ""
 
 serviceAccount:
   name: ""
