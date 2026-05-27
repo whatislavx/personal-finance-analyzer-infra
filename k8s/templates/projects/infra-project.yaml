@@ -10,6 +10,12 @@ spec:
   destinations:
     - namespace: finflow-infra
       server: https://kubernetes.default.svc
+    - namespace: finflow-apps
+      server: https://kubernetes.default.svc
+    - namespace: finflow-monitoring
+      server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
   sourceRepos:
     - '*'
   clusterResourceWhitelist:
