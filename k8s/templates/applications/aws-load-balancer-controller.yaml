@@ -10,14 +10,16 @@ spec:
     chart: aws-load-balancer-controller
     targetRevision: 1.8.1
     helm:
+      valueFiles:
+        - ../../values.yaml
       valuesObject:
-        clusterName: finflow-prod-eks
-        region: eu-central-1
+        clusterName: {{ .Values.global.clusterName | default "finflow-prod-eks" | quote }}
+        region: {{ .Values.aws_region | default "eu-central-1" | quote }}
         serviceAccount:
           create: true
           name: aws-load-balancer-controller
           annotations:
-            eks.amazonaws.com/role-arn: "arn:aws:iam::668751951204:role/finflow-prod-alb-controller-irsa"
+            eks.amazonaws.com/role-arn: {{ .Values.global.infraRoleArn | quote }}
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: kube-system
