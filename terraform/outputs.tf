@@ -20,7 +20,17 @@ output "configure_kubectl" {
 
 output "app_s3_bucket_name" {
   description = "Name of the application S3 bucket"
-  value       = aws_s3_bucket.results.bucket
+  value       = module.storage.app_s3_bucket_name
+}
+
+output "tfstate_s3_bucket_name" {
+  description = "Name of the Terraform state S3 bucket"
+  value       = module.storage.tfstate_s3_bucket_name
+}
+
+output "tfstate_lock_table_name" {
+  description = "Name of the Terraform state DynamoDB lock table"
+  value       = module.storage.tfstate_lock_table_name
 }
 
 output "app_s3_region" {
@@ -33,14 +43,37 @@ output "app_s3_endpoint" {
   value       = "https://s3.${var.aws_region}.amazonaws.com"
 }
 
-output "app_s3_access_key_id" {
-  description = "Access key ID for S3 application user"
-  value       = aws_iam_access_key.results_bucket.id
-  sensitive   = true
+output "secrets_manager_secret_arn" {
+  description = "ARN of AWS Secrets Manager secret for application"
+  value       = module.iam.secrets_manager_secret_arn
 }
 
-output "app_s3_secret_access_key" {
-  description = "Secret access key for S3 application user"
-  value       = aws_iam_access_key.results_bucket.secret
-  sensitive   = true
+output "irsa_apps_role_arn" {
+  description = "ARN of IAM Role for finflow core apps"
+  value       = module.iam.irsa_finflow_apps_iam_role_arn
+}
+
+output "irsa_infra_role_arn" {
+  description = "ARN of IAM Role for finflow infrastructure database/rabbitmq"
+  value       = module.iam.irsa_finflow_infra_iam_role_arn
+}
+
+output "argocd_service_endpoint" {
+  description = "LoadBalancer endpoint for accessing ArgoCD UI"
+  value       = try(module.argocd.argocd_service_commands["get_lb_host"], null)
+}
+
+output "argocd_access_info" {
+  description = "Information to access ArgoCD (commands and namespace)"
+  value       = try(module.argocd.argocd_service_commands, null)
+}
+
+output "acm_certificate_arn" {
+  description = "ARN of the ACM certificate."
+  value       = module.iam.acm_certificate_arn
+}
+
+output "acm_dns_validation_records" {
+  description = "DNS records required to validate the ACM certificate."
+  value       = module.iam.acm_dns_validation_records
 }

@@ -1,0 +1,16 @@
+{{- if .Values.hasService }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.imageName | replace "/" "-" }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.containerPort }}
+      targetPort: {{ .Values.containerPort }}
+      protocol: TCP
+      name: http
+  selector:
+    app: {{ .Values.imageName | replace "/" "-" }}
+{{- end }}

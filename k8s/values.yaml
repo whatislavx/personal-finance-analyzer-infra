@@ -1,0 +1,24 @@
+acmCertificateArn: "ACM_CERTIFICATE_ARN_PLACEHOLDER"
+appDomain: "APP_DOMAIN_PLACEHOLDER"
+
+global:
+  imageTag: "latest"
+  registry: "whatislavx"
+  repoUrl: "GITOPS_REPO_PLACEHOLDER"
+  s3Endpoint: "S3_ENDPOINT_PLACEHOLDER"
+  s3Bucket: "S3_BUCKET_PLACEHOLDER"
+  s3Region: "S3_REGION_PLACEHOLDER"
+  appsRoleArn: "APPS_ROLE_ARN_PLACEHOLDER"
+  infraRoleArn: "INFRA_ROLE_ARN_PLACEHOLDER"
+
+api:
+  imageTag: "latest"
+  registry: "whatislavx"
+
+worker:
+  imageTag: "latest"
+  registry: "whatislavx"
+
+frontend:
+  imageTag: "latest"
+  registry: "whatislavx"

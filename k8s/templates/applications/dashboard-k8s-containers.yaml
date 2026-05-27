@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dashboard-k8s-containers
+  namespace: finflow-monitoring
+  labels:
+    grafana_dashboard: "1"
+spec:
+  dashboard.json: |-
+    {
+      "gnetId": 14282,
+      "title": "Kubernetes: Pods / Containers",
+      "annotations": { "list": [] },
+      "editable": true,
+      "graphTooltip": 1,
+      "panels": [],
+      "refresh": "10s",
+      "schemaVersion": 38,
+      "style": "dark",
+      "tags": ["kubernetes", "k8s"],
+      "time": { "from": "now-1h", "to": "now" },
+      "timepicker": {},
+      "timezone": "browser",
+      "version": 1
+    }

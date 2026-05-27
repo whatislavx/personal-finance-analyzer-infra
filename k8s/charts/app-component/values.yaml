@@ -1,0 +1,23 @@
+imageName: ""
+replicaCount: 1
+containerPort: 80
+hasService: false
+hasIngress: false
+ingressPath: "/"
+ingressHost: ""
+acmCertificateArn: ""
+
+serviceAccount:
+  name: ""
+
+csiSecrets:
+  enabled: false
+  secretProviderClass: ""
+  secretName: ""
+
+config: {}
+secrets: {}
+
+global:
+  imageTag: "latest"
+  registry: ""

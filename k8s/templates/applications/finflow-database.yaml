@@ -1,0 +1,36 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: finflow-database
+  namespace: argocd
+spec:
+  project: infrastructure
+  source:
+    repoURL: 'https://charts.bitnami.com/bitnami'
+    targetRevision: 15.5.x
+    chart: postgresql
+    helm:
+      valuesObject:
+        global:
+          postgresql:
+            auth:
+              username: "postgres"
+              database: "finance_analyzer_db"
+              existingSecret: "finflow-database-secret"
+              secretKeys:
+                userPasswordKey: "DB_PASSWORD"
+                adminPasswordKey: "DB_PASSWORD"
+        primary:
+          persistence:
+            enabled: true
+            size: 10Gi
+            storageClass: "gp3"
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: finflow-infra
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

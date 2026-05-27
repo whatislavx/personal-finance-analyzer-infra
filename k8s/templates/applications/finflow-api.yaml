@@ -1,0 +1,67 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: finflow-api
+  namespace: argocd
+spec:
+  project: finflow-apps
+  source:
+    repoURL: {{ .Values.global.repoUrl | quote }}
+    targetRevision: HEAD
+    path: k8s/charts/app-component
+    helm:
+      valueFiles:
+        - ../../values.yaml
+      valuesObject:
+        imageName: "finflow-api"
+        replicaCount: 2
+        containerPort: 8000
+        hasService: true
+        hasIngress: true
+        ingressPath: "/api"
+        ingressHost: {{ .Values.appDomain | quote }}
+        acmCertificateArn: {{ .Values.acmCertificateArn | quote }}
+        
+        serviceAccount:
+          name: "finflow-api-sa"
+
+        csiSecrets:
+          enabled: true
+          secretProviderClass: "finflow-apps-secrets-provider"
+          secretName: "finflow-api-secret"
+
+        probes:
+          enabled: true
+          liveness:
+            path: "/healthz"
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readiness:
+            path: "/ready"
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+        
+        config:
+          DB_USER: "postgres"
+          DB_HOST: "finflow-database-postgresql"
+          DB_PORT: "5432"
+          DB_NAME: "finance_analyzer_db"
+          RABBITMQ_EXCHANGE: "jobs"
+          JWT_ALGORITHM: "HS256"
+          S3_ENDPOINT: {{ .Values.global.s3Endpoint | quote }}
+          S3_BUCKET: {{ .Values.global.s3Bucket | quote }}
+          S3_REGION: {{ .Values.global.s3Region | quote }}
+          GOTENBERG_URL: "http://finflow-gotenberg:3000"
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: finflow-apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
