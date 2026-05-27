@@ -11,6 +11,10 @@ spec:
     chart: postgresql
     helm:
       valuesObject:
+        image:
+          registry: "docker.io"
+          repository: "postgres"
+          tag: "16.4"
         global:
           postgresql:
             auth:
@@ -24,7 +28,13 @@ spec:
           persistence:
             enabled: true
             size: 10Gi
-            storageClass: "gp3"
+            storageClass: "gp2"
+          extraVolumes:
+            - name: postgres-run
+              emptyDir: {}
+          extraVolumeMounts:
+            - name: postgres-run
+              mountPath: /var/run/postgresql
   destination:
     server: 'https://kubernetes.default.svc'
     namespace: finflow-infra
