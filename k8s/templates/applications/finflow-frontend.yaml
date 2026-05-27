@@ -13,7 +13,10 @@ spec:
       valueFiles:
         - ../../values.yaml
       valuesObject:
+        enabled: true
         imageName: "finflow-frontend"
+        imageTag: {{ .Values.frontend.imageTag | quote }}
+        registry: {{ .Values.frontend.registry | quote }}
         replicaCount: 1
         containerPort: 80
         hasService: true
